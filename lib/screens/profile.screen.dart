@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../models/profile.model.dart';
+import '../models/profile.model.dart';
 
 class NewProfileScreen extends StatefulWidget {
   @override
@@ -11,17 +11,7 @@ class NewProfileScreen extends StatefulWidget {
 class _NewProfileState extends State<NewProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   Profile _profile = Profile();
-  SharedPreferences prefs;
-
-  _validator(value) {
-    if (value.isEmpty) {
-      return "Can't be left blank";
-    }
-  }
-
-  _loadPrefs() async {
-    prefs = await SharedPreferences.getInstance();
-  }
+  SharedPreferences _prefs;
 
   @override
   void initState() {
@@ -29,20 +19,31 @@ class _NewProfileState extends State<NewProfileScreen> {
     _loadPrefs();
   }
 
-  _saveProfile() {
+  String _validator(value) {
+    if (value.isEmpty) {
+      return "Can't be left blank";
+    }
+    return null;
+  }
+
+  Future<void> _loadPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  void _saveProfile() {
     if (_formKey.currentState.validate()) {
       _formKey.currentState.save();
 
       setState(() {
-        final _profilesList = prefs.getStringList('profiles') ?? [];
+        final _profilesList = _prefs.getStringList('profiles') ?? [];
         _profilesList.add(_profile.name);
-        prefs.setStringList('profiles', _profilesList);
+        _prefs.setStringList('profiles', _profilesList);
 
-        prefs.setInt('${_profile.name}.totalLength', _profile.totalSessionLength);
-        prefs.setInt('${_profile.name}.pomodoroLength', _profile.pomodoroLength);
-        prefs.setInt('${_profile.name}.shortBreakLength', _profile.shortBreakLength);
-        prefs.setInt('${_profile.name}.longBreakLength', _profile.longBreakLength);
-        prefs.setInt('${_profile.name}.numberOfLongBreaks', _profile.numberOfLongBreaks);
+        _prefs.setInt('${_profile.name}.totalLength', _profile.totalSessionLength);
+        _prefs.setInt('${_profile.name}.pomodoroLength', _profile.pomodoroLength);
+        _prefs.setInt('${_profile.name}.shortBreakLength', _profile.shortBreakLength);
+        _prefs.setInt('${_profile.name}.longBreakLength', _profile.longBreakLength);
+        _prefs.setInt('${_profile.name}.numberOfLongBreaks', _profile.numberOfLongBreaks);
       });
 
       Navigator.pop(context, true);

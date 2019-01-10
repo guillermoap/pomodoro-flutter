@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import './screens/profiles/index.screen.dart';
-import './screens/profiles/new.screen.dart';
+import './screens/profiles.screen.dart';
+import './screens/profile.screen.dart';
 
 void main() => runApp(
   MaterialApp(

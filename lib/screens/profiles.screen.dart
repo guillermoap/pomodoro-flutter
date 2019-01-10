@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../timer/timer.screen.dart';
+import './timer.screen.dart';
 
 class ProfilesScreen extends StatefulWidget {
   @override
@@ -18,11 +18,18 @@ class _ProfilesScreenState extends State<ProfilesScreen> {
     _loadProfiles();
   }
 
-  _loadProfiles() async {
+  Future<void> _loadProfiles() async {
     prefs = await SharedPreferences.getInstance();
     setState(() {
       profiles = prefs.getStringList('profiles') ?? [];
     });
+  }
+  
+  Future<void> _createProfile() async {
+    final result = await Navigator.pushNamed(context, '/newProfile');
+    if (result) {
+      _loadProfiles();
+    }
   }
 
   void _clearPrefs() {
@@ -30,13 +37,6 @@ class _ProfilesScreenState extends State<ProfilesScreen> {
       profiles.clear();
       prefs.clear();
     });
-  }
-
-  _createProfile() async {
-    final result = await Navigator.pushNamed(context, '/newProfile');
-    if (result) {
-      _loadProfiles();
-    }
   }
 
   @override

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:screen/screen.dart';
+import 'package:audioplayers/audio_cache.dart';
 
-import '../../models/profile.model.dart';
+import '../models/profile.model.dart';
 
 import 'dart:async';
 
@@ -17,30 +18,35 @@ class TimerScreen extends StatefulWidget {
 }
 
 class _TimerState extends State<TimerScreen> {
-  Duration _oneSec = Duration(seconds: 1);
-  String _profileName;
+  _TimerState(this._profileName);
+  final String _profileName;
+
+  final Duration _oneSec = Duration(seconds: 1);
+  final NumberFormat _timeFormat = NumberFormat("00");
+  final AudioCache soundPlayer = AudioCache(prefix: 'sounds/');
+  
   Profile _profile = Profile();
   Timer _timer;
-  Color _buttonColor;
-
-  NumberFormat _timeFormat = NumberFormat("00");
   int _seconds = 0;
   int _minutes = 0;
   int _hours = 0;
   List _session = [];
-  int time;
   int currentSessionIndex = 0;
-
-  _TimerState(this._profileName);
+  String sessionDescriptionText = '';
+  String sessionFinishedText;
+  
+  bool showTaskBox = true;
+  Color _buttonColor;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
     Screen.keepOn(true);
+    soundPlayer.load('beep.mp3');
   }
 
-  _loadProfile() async {
+  Future<void> _loadProfile() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
@@ -57,16 +63,17 @@ class _TimerState extends State<TimerScreen> {
 
   void _calculateSession() {
     int leftoverTime = _profile.totalSessionLength;
-    int marker = leftoverTime ~/ _profile.numberOfLongBreaks;
-    int offset = _profile.pomodoroLength ~/ 2;
+    int marker = leftoverTime ~/ (_profile.numberOfLongBreaks + 1);
+    int offset = _profile.longBreakLength ~/ 2;
     int numberOfLongBreaks = 0;
 
     while (leftoverTime > _profile.pomodoroLength) {
       _session.add(_profile.pomodoroLength);
       leftoverTime -= _profile.pomodoroLength;
       if (numberOfLongBreaks < _profile.numberOfLongBreaks &&
-        (leftoverTime < marker + offset && leftoverTime > marker - offset)) {
+        leftoverTime < marker + offset) {
         _session.add(_profile.longBreakLength);
+        numberOfLongBreaks++;
         leftoverTime -= _profile.longBreakLength;
       } else if (leftoverTime > _profile.shortBreakLength) {
         _session.add(_profile.shortBreakLength);
@@ -78,6 +85,28 @@ class _TimerState extends State<TimerScreen> {
     }
 
     _startNextSession();
+  }
+
+  void _startNextSession() {
+    setState(() {
+      if (_session[currentSessionIndex] == _profile.pomodoroLength) {
+        sessionDescriptionText = 'Pomodoro';
+        showTaskBox = true;
+      } else if (_session[currentSessionIndex] == _profile.shortBreakLength) {
+        sessionDescriptionText = 'Short Break';
+        showTaskBox = false;
+      } else if (_session[currentSessionIndex] == _profile.longBreakLength) {
+        sessionDescriptionText = 'Long Break';
+        showTaskBox = false;
+      }
+      int time = _session[currentSessionIndex];
+      while (time > 60) {
+        _hours++;
+        time -= 60;
+      }
+      _minutes = time;
+    });
+    currentSessionIndex++;
   }
 
   void _toggleTimer() {
@@ -108,8 +137,10 @@ class _TimerState extends State<TimerScreen> {
         }
       } else {
         if (currentSessionIndex < _session.length) {
+          soundPlayer.play('beep.mp3');
           _startNextSession();
         } else {
+          sessionFinishedText = 'Session finished!';
           _toggleTimer();
           _clear();
         }
@@ -123,18 +154,6 @@ class _TimerState extends State<TimerScreen> {
       _minutes = 0;
       _hours = 0;
     });
-  }
-
-  void _startNextSession() {
-    setState(() {
-      time = _session[currentSessionIndex];
-      while (time > 60) {
-        _hours++;
-        time -= 60;
-      }
-      _minutes = time;
-    });
-    currentSessionIndex++;
   }
 
   @override
@@ -156,24 +175,57 @@ class _TimerState extends State<TimerScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Text(
-              '${_timeFormat.format(_hours)}:${_timeFormat.format(_minutes)}:${_timeFormat.format(_seconds)}',
+              sessionFinishedText ?? _session.toString(),
               style: TextStyle(
-                fontSize: 30.0,
+                fontSize: 10.0,
                 color: Colors.black,
               ),
             ),
-            Padding(
-              padding: EdgeInsets.only(top: 30.0),
-              child: TextField(
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20.0,
-                  color: Colors.red,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Task',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 10.0),
+              padding: EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                border: Border.all(width: 2.0, color: Theme.of(context).primaryColor),
+                borderRadius: BorderRadius.circular(32.0),
+              ),
+              child: Column(
+                children: <Widget>[
+                  Text(
+                    '${_timeFormat.format(_hours)}:${_timeFormat.format(_minutes)}:${_timeFormat.format(_seconds)}',
+                    style: TextStyle(
+                      fontSize: 30.0,
+                      color: Colors.black,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.0),
+                    child: Text(
+                      sessionDescriptionText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15.0,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Opacity(
+              opacity: showTaskBox ? 1.0 : 0.0,
+              child: Padding(
+                padding: EdgeInsets.only(top: 10.0),
+                child: TextField(
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.red,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Task',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
                 ),
               ),
