@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:inherited_widget_sample/app.dart';
-import 'package:inherited_widget_sample/state_container.dart';
 
-void main() {
-  runApp(StateContainer(
-    child: InheritedWidgetApp(),
-  ));
-}
+import './screens/profiles.screen.dart';
+import './screens/profile.screen.dart';
+
+void main() => runApp(
+  MaterialApp(
+    title: 'Pomodoro App',
+    home: ProfilesScreen(),
+    routes: {
+      '/newProfile': (context) => NewProfileScreen(),
+    },
+  )
+);
