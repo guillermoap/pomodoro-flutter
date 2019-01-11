@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:screen/screen.dart';
 import 'package:audioplayers/audio_cache.dart';
+import 'package:vibration/vibration.dart';
 
 import '../models/profile.model.dart';
 
@@ -34,7 +35,8 @@ class _TimerState extends State<TimerScreen> {
   int currentSessionIndex = 0;
   String sessionDescriptionText = '';
   String sessionFinishedText;
-  
+  bool canVibrate;
+
   bool showTaskBox = true;
   Color _buttonColor;
 
@@ -44,6 +46,11 @@ class _TimerState extends State<TimerScreen> {
     _loadProfile();
     Screen.keepOn(true);
     soundPlayer.load('beep.mp3');
+    _canVibrate();
+  }
+
+  _canVibrate() async {
+    canVibrate = await Vibration.hasVibrator();
   }
 
   Future<void> _loadProfile() async {
@@ -136,8 +143,9 @@ class _TimerState extends State<TimerScreen> {
           --_seconds;
         }
       } else {
+        soundPlayer.play('beep.mp3');
+        if (canVibrate) { Vibration.vibrate(); }
         if (currentSessionIndex < _session.length) {
-          soundPlayer.play('beep.mp3');
           _startNextSession();
         } else {
           sessionFinishedText = 'Session finished!';
