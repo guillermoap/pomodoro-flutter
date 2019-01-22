@@ -27,7 +27,7 @@ dev_dependencies:
   intl: ^0.15.7
   screen: ^0.0.4
   audioplayers: ^0.8.0
-
+  vibration: ^1.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec
